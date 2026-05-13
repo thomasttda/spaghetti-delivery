@@ -46,7 +46,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_wlvVG20M8ThEEJ21bccOsg_2jb_aHC5
 
 ### Credenciais do Admin
 - **Email**: `admin@spaghetti.com`
-- **Senha**: `spaghetti123`
+- **Senha**: `admin@spaghetti`
 - **Role no banco**: `admin` (na tabela `profiles`)
 
 ### Supabase Project

@@ -168,7 +168,11 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, role)
-  VALUES (NEW.id, NEW.email, 'customer')
+  VALUES (
+    NEW.id, 
+    NEW.email, 
+    CASE WHEN NEW.email = 'admin@spaghetti.com' THEN 'admin' ELSE 'customer' END
+  )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
@@ -192,7 +196,7 @@ CREATE TRIGGER on_auth_user_created
 --
 -- Default credentials:
 --   Email: admin@spaghetti.com
---   Senha: spaghetti123
+--   Senha: admin@spaghetti
 -- ============================================================
 
 -- ============================================================

@@ -95,11 +95,12 @@ const statusColors: Record<OrderStatus, string> = {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'banners' | 'customers' | 'finance' | 'inventory' | 'delivery'>('orders')
+  const [activeTab, setActiveTab] = useState<'orders' | 'menu' | 'categories' | 'banners' | 'customers' | 'finance' | 'inventory' | 'delivery'>('orders')
   const [orders, setOrders] = useState<Order[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; order: number }[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
@@ -129,6 +130,15 @@ export default function AdminPage() {
     active: true,
     order: '0',
     product_id: '',
+  })
+
+  // Category form state
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; slug: string; order: number } | null>(null)
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    slug: '',
+    order: '0',
   })
 
   // Customer Profile state
@@ -241,6 +251,10 @@ export default function AdminPage() {
       if (productsRes.data) setProducts(productsRes.data)
       if (customersRes.data) setCustomers(customersRes.data)
       if (bannersRes.data) setBanners(bannersRes.data)
+      
+      const { data: catData } = await supabase.from('categories').select('*').order('order')
+      if (catData) setCategories(catData)
+      
       setLoading(false)
     }
 
@@ -392,6 +406,46 @@ export default function AdminPage() {
     setShowBannerForm(true)
   }
 
+  // Category CRUD
+  const handleSaveCategory = async () => {
+    const slug = categoryForm.slug || categoryForm.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-')
+    const data = {
+      name: categoryForm.name,
+      slug,
+      order: parseInt(categoryForm.order) || 0,
+    }
+
+    if (editingCategory) {
+      const { error } = await supabase.from('categories').update(data as never).eq('id', editingCategory.id)
+      if (error) { alert('Erro ao atualizar: ' + error.message); return; }
+      setCategories((prev) => prev.map((c) => (c.id === editingCategory.id ? { ...c, ...data } : c)).sort((a,b) => a.order - b.order))
+    } else {
+      const { data: newCat, error } = await supabase.from('categories').insert(data as never).select().single()
+      if (error) { alert('Erro ao criar: ' + error.message); return; }
+      if (newCat) setCategories((prev) => [...prev, newCat].sort((a,b) => a.order - b.order))
+    }
+    resetCategoryForm()
+  }
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Tem certeza? Isso pode afetar produtos vinculados.')) return;
+    const { error } = await supabase.from('categories').delete().eq('id', id)
+    if (error) { alert('Erro ao excluir: ' + error.message); return; }
+    setCategories((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  const resetCategoryForm = () => {
+    setEditingCategory(null)
+    setShowCategoryForm(false)
+    setCategoryForm({ name: '', slug: '', order: '0' })
+  }
+
+  const startEditCategory = (c: any) => {
+    setEditingCategory(c)
+    setCategoryForm({ name: c.name, slug: c.slug, order: c.order.toString() })
+    setShowCategoryForm(true)
+  }
+
   // Auth check screens
   if (checkingAuth) {
     return (
@@ -483,6 +537,7 @@ export default function AdminPage() {
           {[
             { key: 'orders' as const, label: 'Pedidos', icon: Package },
             { key: 'menu' as const, label: 'Cardápio', icon: UtensilsCrossed },
+            { key: 'categories' as const, label: 'Categorias', icon: ClipboardList },
             { key: 'banners' as const, label: 'Banners', icon: MonitorPlay },
             { key: 'customers' as const, label: 'Clientes', icon: Users },
             { key: 'finance' as const, label: 'Financeiro', icon: DollarSign },
@@ -647,10 +702,10 @@ export default function AdminPage() {
                           onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
                           className="flex h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <option value="hamburgueres">Hambúrgueres</option>
-                          <option value="combos">Combos</option>
-                          <option value="bebidas">Bebidas</option>
-                          <option value="sobremesas">Sobremesas</option>
+                          <option value="">Selecione uma categoria</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                          ))}
                         </select>
                       </div>
                       <div className="space-y-1">
@@ -770,6 +825,96 @@ export default function AdminPage() {
                             className="text-danger hover:text-danger hover:bg-danger/10 gap-2"
                           >
                             <Trash2 className="h-4 w-4" /> Excluir
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ===== CATEGORIES TAB ===== */}
+            {activeTab === 'categories' && (
+              <div className="animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold font-display">Gestão de Categorias</h2>
+                    <p className="text-sm text-muted-foreground">Adicione ou edite as seções do seu cardápio</p>
+                  </div>
+                  <Button onClick={() => setShowCategoryForm(true)} className="gap-1">
+                    <Plus className="h-4 w-4" /> Nova Categoria
+                  </Button>
+                </div>
+
+                {showCategoryForm && (
+                  <div className="bg-card border border-border rounded-2xl p-6 mb-6 shadow-xl animate-fade-in">
+                    <h3 className="text-lg font-bold mb-4">{editingCategory ? 'Editar' : 'Nova'} Categoria</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Nome Exibido</label>
+                        <Input 
+                          value={categoryForm.name} 
+                          onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})} 
+                          placeholder="Ex: Pizzas Artesanais" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Slug (URL/ID)</label>
+                        <Input 
+                          value={categoryForm.slug} 
+                          onChange={(e) => setCategoryForm({...categoryForm, slug: e.target.value})} 
+                          placeholder="Ex: pizzas-artesanais" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Ordem de Exibição</label>
+                        <Input 
+                          type="number" 
+                          value={categoryForm.order} 
+                          onChange={(e) => setCategoryForm({...categoryForm, order: e.target.value})} 
+                          placeholder="0" 
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-6">
+                      <Button variant="outline" onClick={resetCategoryForm}>Cancelar</Button>
+                      <Button onClick={handleSaveCategory}>
+                        {editingCategory ? 'Salvar Alterações' : 'Criar Categoria'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {categories.length === 0 ? (
+                    <div className="col-span-full text-center py-12 text-muted-foreground bg-secondary/20 rounded-2xl border border-dashed border-border">
+                      <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p>Nenhuma categoria cadastrada.</p>
+                    </div>
+                  ) : (
+                    categories.map((cat) => (
+                      <div key={cat.id} className="bg-card border border-border rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            {cat.order}
+                          </div>
+                          <div>
+                            <p className="font-bold">{cat.name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{cat.slug}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => startEditCategory(cat)} className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteCategory(cat.id)} 
+                            className="h-8 w-8 text-danger hover:bg-danger/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>

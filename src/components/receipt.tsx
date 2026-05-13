@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Download, CheckCircle2 } from 'lucide-react'
+import { Download, CheckCircle2, MessageCircle } from 'lucide-react'
 import { useRef } from 'react'
 import type { CartItem } from '@/store/cart-store'
 
@@ -52,6 +52,44 @@ export function Receipt({
       link.click()
     } catch (err) {
       console.error('Error generating receipt image:', err)
+    }
+  }
+
+  const handleWhatsAppPayment = async () => {
+    if (!receiptRef.current) return
+
+    const message = `Olá! Acabei de realizar o pedido #${orderNumber}. Gostaria de receber as informações de pagamento.\n\nTotal: ${formatCurrency(total)}`
+    const whatsappUrl = `https://wa.me/5573991254234?text=${encodeURIComponent(message)}`
+
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(receiptRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      })
+
+      canvas.toBlob(async (blob) => {
+        if (blob && navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'comanda.png', { type: 'image/png' })] })) {
+          const file = new File([blob], `comanda-${orderNumber}.png`, { type: 'image/png' })
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Pedido #${orderNumber}`,
+              text: message,
+            })
+          } catch (shareErr) {
+            // Se o compartilhamento for cancelado ou falhar, abre o link direto
+            console.log('Share was cancelled or failed', shareErr)
+            window.open(whatsappUrl, '_blank')
+          }
+        } else {
+          // Fallback para link direto se não houver suporte a compartilhamento de arquivos
+          window.open(whatsappUrl, '_blank')
+        }
+      }, 'image/png')
+    } catch (err) {
+      console.error('Error in WhatsApp payment flow:', err)
+      window.open(whatsappUrl, '_blank')
     }
   }
 
@@ -141,14 +179,24 @@ export function Receipt({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 mt-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">
-            Fechar
+        <div className="flex flex-col gap-2 mt-4">
+          <Button 
+            onClick={handleWhatsAppPayment} 
+            className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white font-bold h-12 text-base shadow-lg animate-pulse-gold"
+          >
+            <MessageCircle className="h-5 w-5" />
+            Realizar Pagamento
           </Button>
-          <Button onClick={handleSave} className="flex-1 gap-2">
-            <Download className="h-4 w-4" />
-            Salvar Comprovante
-          </Button>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Fechar
+            </Button>
+            <Button variant="outline" onClick={handleSave} className="flex-1 gap-2">
+              <Download className="h-4 w-4" />
+              Salvar Comprovante
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
