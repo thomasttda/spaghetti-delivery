@@ -101,7 +101,7 @@ export function Receipt({
         {/* Success Message */}
         <div className="flex flex-col items-center gap-2 py-3">
           <CheckCircle2 className="h-12 w-12 text-success animate-bounce-subtle" />
-          <h2 className="text-lg font-bold text-success">Pedido Enviado!</h2>
+          <h2 className="text-xl font-bold text-success">Pedido Realizado com Sucesso!</h2>
         </div>
 
         {/* Receipt */}
@@ -179,12 +179,12 @@ export function Receipt({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2 mt-4">
+        <div className="flex flex-col gap-3 mt-4">
           <Button 
             onClick={handleWhatsAppPayment} 
-            className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white font-bold h-12 text-base shadow-lg animate-pulse-gold"
+            className="w-full gap-3 bg-green-600 hover:bg-green-700 text-white font-bold h-14 text-lg shadow-xl animate-pulse-gold rounded-xl"
           >
-            <MessageCircle className="h-5 w-5" />
+            <MessageCircle className="h-6 w-6" />
             Realizar Pagamento
           </Button>
           
@@ -192,8 +192,8 @@ export function Receipt({
             <Button variant="outline" onClick={onClose} className="flex-1">
               Fechar
             </Button>
-            <Button variant="outline" onClick={handleSave} className="flex-1 gap-2">
-              <Download className="h-4 w-4" />
+            <Button variant="ghost" onClick={handleSave} className="flex-1 gap-2 text-muted-foreground text-xs">
+              <Download className="h-3 w-3" />
               Salvar Comprovante
             </Button>
           </div>
