@@ -41,8 +41,6 @@ export function BeverageUpsell({ open, onClose }: Props) {
           } else {
             setBeverages(DEMO_PRODUCTS.filter((p) => p.category === 'bebidas').slice(0, 3) as unknown as Beverage[])
           }
-        })
-        .finally(() => {
           setIsLoading(false)
         })
     }

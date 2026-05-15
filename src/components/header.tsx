@@ -65,7 +65,7 @@ export function Header() {
         .single()
       
       if (data) {
-        setIsOpen(data.active)
+        setIsOpen((data as any).active)
       } else {
         setIsOpen(true) // Default to open
       }

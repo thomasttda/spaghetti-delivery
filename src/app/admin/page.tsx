@@ -242,22 +242,22 @@ export default function AdminPage() {
     if (!isAdmin) return
 
     const fetchData = async () => {
-      const [ordersRes, productsRes, customersRes, bannersRes] = await Promise.all([
+      const [ordersRes, productsRes, customersRes, bannersRes, categoriesRes] = await Promise.all([
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('products').select('*').order('name'),
         supabase.from('profiles').select('*').eq('role', 'customer').order('total_spent', { ascending: false }),
         supabase.from('banners').select('*').order('order'),
+        supabase.from('categories').select('*').order('order'),
       ])
 
       if (ordersRes.data) setOrders(ordersRes.data)
       if (productsRes.data) setProducts(productsRes.data)
       if (customersRes.data) setCustomers(customersRes.data)
       if (bannersRes.data) setBanners(bannersRes.data)
-      
-      if (catData) setCategories(catData)
+      if (categoriesRes.data) setCategories(categoriesRes.data)
       
       const { data: configBanner } = await supabase.from('banners').select('active').eq('title', '__STORE_CONFIG__').single()
-      if (configBanner) setIsOpen(configBanner.active)
+      if (configBanner) setIsOpen((configBanner as any).active)
       
       setLoading(false)
     }
@@ -465,8 +465,8 @@ export default function AdminPage() {
     if (existing) {
       const { error: err } = await supabase
         .from('banners')
-        .update({ active: newValue } as any)
-        .eq('id', existing.id)
+        .update({ active: newValue } as never)
+        .eq('id', (existing as any).id)
       error = err
     } else {
       const { error: err } = await supabase
@@ -476,7 +476,7 @@ export default function AdminPage() {
           active: newValue, 
           image_url: 'system', 
           order: -999 
-        } as any)
+        } as never)
       error = err
     }
     
