@@ -14,6 +14,7 @@ export function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [isOpen, setIsOpen] = useState<boolean | null>(null)
 
   useEffect(() => {
     const checkAdminRole = async (userId: string) => {
@@ -55,7 +56,41 @@ export function Header() {
       }
     })
 
-    return () => subscription.unsubscribe()
+    // Check store status
+    const fetchStoreStatus = async () => {
+      const { data } = await supabase
+        .from('banners')
+        .select('active')
+        .eq('title', '__STORE_CONFIG__')
+        .single()
+      
+      if (data) {
+        setIsOpen(data.active)
+      } else {
+        setIsOpen(true) // Default to open
+      }
+    }
+
+    fetchStoreStatus()
+
+    // Realtime status updates
+    const statusChannel = supabase
+      .channel('store-status-banner')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'banners', filter: 'title=eq.__STORE_CONFIG__' },
+        (payload: any) => {
+          if (payload.new) {
+            setIsOpen(payload.new.active)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+      supabase.removeChannel(statusChannel)
+    }
   }, [])
 
 
@@ -68,6 +103,15 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-xl border-b border-white/10 shadow-lg">
+      {isOpen !== null && (
+        <div className={`py-1.5 px-4 text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors duration-500 ${
+          isOpen 
+            ? 'bg-emerald-500/10 text-emerald-500 border-b border-emerald-500/20' 
+            : 'bg-rose-500/10 text-rose-500 border-b border-rose-500/20'
+        }`}>
+          {isOpen ? '🟢 Estamos funcionando' : '🔴 Estamos fechados'}
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           {/* Espaçador invisível para manter a logo centralizada */}

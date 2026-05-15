@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // Admin routes protection is handled client-side via Supabase auth check
   // The middleware here ensures the route exists and adds security headers
   const response = NextResponse.next()

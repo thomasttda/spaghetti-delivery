@@ -42,6 +42,7 @@ export function BannerCarousel() {
       .from('banners')
       .select('*')
       .eq('active', true)
+      .neq('title', '__STORE_CONFIG__')
       .order('order')
       .then(({ data }) => {
         if (data && data.length > 0) setBanners(data)

@@ -12,6 +12,8 @@ const buttonVariants = cva(
           "bg-primary text-primary-foreground shadow-md hover:brightness-110",
         destructive:
           "bg-danger text-white shadow-md hover:brightness-110",
+        success:
+          "bg-success text-white shadow-md hover:brightness-110",
         outline:
           "border border-border bg-transparent hover:bg-secondary",
         secondary:

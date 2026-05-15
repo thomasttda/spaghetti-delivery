@@ -262,3 +262,23 @@ INSERT INTO public.delivery_zones (neighborhood, fee) VALUES
 ('Bairro Alto', 7.99),
 ('Vila Nova', 8.50)
 ON CONFLICT DO NOTHING;
+
+-- SETTINGS (Store Config)
+CREATE TABLE IF NOT EXISTS public.settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read settings" ON settings
+  FOR SELECT USING (true);
+
+CREATE POLICY "Admins can manage settings" ON settings
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Seed initial store status
+INSERT INTO public.settings (key, value) VALUES ('is_open', 'true') ON CONFLICT DO NOTHING;

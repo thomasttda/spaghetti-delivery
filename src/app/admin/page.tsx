@@ -106,6 +106,8 @@ export default function AdminPage() {
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [newOrderAlert, setNewOrderAlert] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
+  const [togglingStatus, setTogglingStatus] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Product form state
@@ -252,8 +254,10 @@ export default function AdminPage() {
       if (customersRes.data) setCustomers(customersRes.data)
       if (bannersRes.data) setBanners(bannersRes.data)
       
-      const { data: catData } = await supabase.from('categories').select('*').order('order')
       if (catData) setCategories(catData)
+      
+      const { data: configBanner } = await supabase.from('banners').select('active').eq('title', '__STORE_CONFIG__').single()
+      if (configBanner) setIsOpen(configBanner.active)
       
       setLoading(false)
     }
@@ -446,6 +450,44 @@ export default function AdminPage() {
     setShowCategoryForm(true)
   }
 
+  const toggleStoreStatus = async () => {
+    setTogglingStatus(true)
+    const newValue = !isOpen
+    
+    // Check if config banner exists
+    const { data: existing } = await supabase
+      .from('banners')
+      .select('id')
+      .eq('title', '__STORE_CONFIG__')
+      .single()
+
+    let error;
+    if (existing) {
+      const { error: err } = await supabase
+        .from('banners')
+        .update({ active: newValue } as any)
+        .eq('id', existing.id)
+      error = err
+    } else {
+      const { error: err } = await supabase
+        .from('banners')
+        .insert({ 
+          title: '__STORE_CONFIG__', 
+          active: newValue, 
+          image_url: 'system', 
+          order: -999 
+        } as any)
+      error = err
+    }
+    
+    if (!error) {
+      setIsOpen(newValue)
+    } else {
+      alert('Erro ao atualizar status: ' + error.message)
+    }
+    setTogglingStatus(false)
+  }
+
   // Auth check screens
   if (checkingAuth) {
     return (
@@ -506,6 +548,21 @@ export default function AdminPage() {
                 Novo Pedido!
               </div>
             )}
+
+            <Button
+              variant={isOpen ? "success" : "destructive"}
+              size="sm"
+              onClick={toggleStoreStatus}
+              disabled={togglingStatus}
+              className="rounded-full gap-2 px-4 h-9 font-bold"
+            >
+              {togglingStatus ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UtensilsCrossed className="h-4 w-4" />
+              )}
+              {isOpen ? 'ABERTO' : 'FECHADO'}
+            </Button>
 
             <Button
               variant="ghost"
