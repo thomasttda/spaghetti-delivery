@@ -32,7 +32,10 @@ export default function OrdersPage() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error && error.message.toLowerCase().includes('refresh')) {
+        await supabase.auth.signOut()
+      }
       if (!user) {
         setLoading(false)
         return

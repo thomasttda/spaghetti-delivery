@@ -40,11 +40,18 @@ export function Header() {
       }
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (error) {
+        if (error.message.includes('Refresh Token') || error.message.includes('refresh_token')) {
+          supabase.auth.signOut()
+        }
+      }
+      setUser(data.user ?? null)
       if (data.user) {
         checkAdminRole(data.user.id)
       }
+    }).catch(() => {
+      supabase.auth.signOut()
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

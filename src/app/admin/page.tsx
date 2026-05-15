@@ -163,7 +163,10 @@ export default function AdminPage() {
   // Check admin auth
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error && error.message.toLowerCase().includes('refresh')) {
+        await supabase.auth.signOut()
+      }
       if (!user) {
         setCheckingAuth(false)
         return

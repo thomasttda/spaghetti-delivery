@@ -27,22 +27,47 @@ export function BeverageUpsell({ open, onClose }: Props) {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (open) {
-      setIsLoading(true)
-      supabase
-        .from('products')
-        .select('*')
-        .eq('category', 'bebidas')
-        .eq('available', true)
-        .limit(3)
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            setBeverages(data)
-          } else {
-            setBeverages(DEMO_PRODUCTS.filter((p) => p.category === 'bebidas').slice(0, 3) as unknown as Beverage[])
-          }
-          setIsLoading(false)
-        })
+    if (!open) return
+    
+    let isMounted = true
+    setIsLoading(true)
+
+    const fetchBeverages = async () => {
+      try {
+        // 1. Find the correct slug for the "Bebidas" category
+        const { data: catData } = await supabase
+          .from('categories')
+          .select('slug')
+          .ilike('name', '%bebida%')
+          .limit(1)
+          .single()
+        
+        const categorySlug = (catData as any)?.slug || 'bebidas'
+
+        // 2. Fetch products with that slug
+        const { data } = await supabase
+          .from('products')
+          .select('*')
+          .eq('category', categorySlug)
+          .eq('available', true)
+          .limit(3)
+
+        if (!isMounted) return
+
+        if (data && data.length > 0) {
+          setBeverages(data)
+        } else {
+          setBeverages(DEMO_PRODUCTS.filter((p) => p.category === 'bebidas').slice(0, 3) as unknown as Beverage[])
+        }
+      } finally {
+        if (isMounted) setIsLoading(false)
+      }
+    }
+
+    fetchBeverages()
+
+    return () => {
+      isMounted = false
     }
   }, [open])
 
@@ -88,7 +113,6 @@ export function BeverageUpsell({ open, onClose }: Props) {
               >
                 <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden relative">
                   <img src={bev.image_url} alt={bev.name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                  <span className="text-2xl relative z-10">🥤</span>
                 </div>
                 <div className="flex-1 text-left">
                   <p className="font-semibold text-sm">{bev.name}</p>

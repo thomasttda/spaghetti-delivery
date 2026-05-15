@@ -56,8 +56,12 @@ export function CartSheet() {
                 key={`${item.product_id}-${idx}`}
                 className="flex gap-3 p-3 rounded-xl bg-secondary/50 animate-fade-in"
               >
-                <div className="w-16 h-16 rounded-lg bg-secondary flex-shrink-0 overflow-hidden flex items-center justify-center">
-                  <span className="text-2xl">🍔</span>
+                <div className="w-16 h-16 rounded-lg bg-secondary flex-shrink-0 overflow-hidden flex items-center justify-center relative">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                  ) : (
+                    <span className="text-2xl relative z-10">🍔</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-sm truncate">{item.name}</h4>
